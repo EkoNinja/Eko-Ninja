@@ -27,23 +27,34 @@ class Player(pygame.sprite.Sprite):
         self.rect = Rect(self.x, self.y, 85, 160)
         self.direction = "right"
         self.isInAir = False
+        self.hasJumped = False
+        self.isJumping = False
         self.image = character
     def move(self, x, y):
         if not self.x <= 0 and not self.x >= 800:
-            self.rect.move_ip(x, y)
             self.x = self.x + x
             self.y = self.y + y
-            print(self.x, self.y)
+            self.rect = Rect(self.x, self.y, 85, 160)
         if not self.y <= 0 and not self.y >= 600:
-            self.rect.move_ip(x, y)
             self.x = self.x + x
             self.y = self.y + y
-            print(self.x, self.y)
+            self.rect = Rect(self.x, self.y, 85, 160)
         self.rect.clamp_ip(screen_rect)
+    def jump(self):
+        if self.hasJumped == False:
+            self.isJumping = True
     def draw(self):
-        if self.y < 315: self.isInAir = True
-        else: self.isInAir = False
-        if self.y < 315: self.y = self.y + 3
+        if self.isJumping == True:
+            self.y = self.y - 4
+        if self.y < 315:
+            self.isInAir = True
+            if self.y < 275: self.hasJumped = True
+            if self.hasJumped == True:
+                self.y = self.y + 4
+        else:
+            self.isInAir = False
+            self.hasJumped = False
+            self.isJumping = False
         screen.blit(self.image, self.rect)
 
 def clicked(rect):
