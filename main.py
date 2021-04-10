@@ -10,6 +10,7 @@ next_location = None
 
 pygame.init()
 pygame.display.set_caption("Eko Ninja")
+pygame.display.set_icon(g.icon)
 screen = pygame.display.set_mode((800, 600))
 screen_rect = screen.get_rect()
 
@@ -20,15 +21,39 @@ location = "Home Menu"
 
 mouse_clicked = False
 
+pygame.mixer.music.load("loop.mp3")
+pygame.mixer.music.play(-1)
+pygame.mixer.music.set_volume(0.01)
+
+def drawText(surface, text, color, rect, font, aa=False, bkg=None):
+    rect = Rect(rect)
+    y = rect.top
+    lineSpacing = -2
+    fontHeight = font.size("Tg")[1]
+    while text:
+        i = 1
+        if y + fontHeight > rect.bottom:
+            break
+        while font.size(text[:i])[0] < rect.width and i < len(text):
+            i += 1
+        if i < len(text): 
+            i = text.rfind(" ", 0, i) + 1
+        if bkg:
+            image = font.render(text[:i], 1, color, bkg)
+            image.set_colorkey(bkg)
+        else:
+            image = font.render(text[:i], aa, color)
+        surface.blit(image, (rect.left, y))
+        y += fontHeight + lineSpacing
+        text = text[i:]
+    return text
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, character):
         self.x = 100
         self.y = 315
         self.rect = Rect(self.x, self.y, 85, 160)
         self.direction = "right"
-        self.isInAir = False
-        self.hasJumped = False
-        self.isJumping = False
         self.image = character
     def move(self, x, y):
         if not self.x <= 0 and not self.x >= 800:
@@ -40,21 +65,22 @@ class Player(pygame.sprite.Sprite):
             self.y = self.y + y
             self.rect = Rect(self.x, self.y, 85, 160)
         self.rect.clamp_ip(screen_rect)
-    def jump(self):
-        if self.hasJumped == False:
-            self.isJumping = True
+    def nextScene(self):
+        global location
+        if self.x <= 0:
+            if location == "City Square":
+                return
+            if location == "Beach":
+                location = "City Square"
+                self.x = 795
+        if self.x >= 800:
+            if location == "City Square":
+                location = "Beach"
+                self.x = 5
+            if location == "Beach":
+                return
     def draw(self):
-        if self.isJumping == True:
-            self.y = self.y - 4
-        if self.y < 315:
-            self.isInAir = True
-            if self.y < 275: self.hasJumped = True
-            if self.hasJumped == True:
-                self.y = self.y + 4
-        else:
-            self.isInAir = False
-            self.hasJumped = False
-            self.isJumping = False
+        self.nextScene()
         screen.blit(self.image, self.rect)
 
 def clicked(rect):
@@ -76,7 +102,21 @@ while 1:
         if event.type == MOUSEBUTTONUP:
             mouse_clicked = False
             if next_location: location = next_location
+            next_location = None
+        if event.type == pygame.KEYDOWN:
+            if pygame.key.name(event.key) == "f8":
+                if pygame.mixer.music.get_busy():
+                    pygame.mixer.music.pause()
+                else:
+                    pygame.mixer.music.unpause()
+            if pygame.key.name(event.key) == "escape":
+                player = False
+                location = "Home Menu"
+            if pygame.key.name(event.key) == "h":
+                location = "Controls"
+                    
     screen.blit(g.background_image, (0, 0))
+    
     if location == "Home Menu":
         title = title_font.render("Eko Ninja", False, (20, 54, 2))
         screen.blit(title, (340, 100))
@@ -108,9 +148,29 @@ while 1:
         if clicked(Rect(400, 210, 300, 80)): player = Player(g.pink_skin)
         if clicked(Rect(100, 300, 300, 80)): player = Player(g.purple_skin)
         if clicked(Rect(400, 300, 300, 80)): player = Player(g.red_skin)
-        if Player: next_location = "City Square"
+        if player: next_location = "City Square"
+
+    if location == "Instructions":
+        text = "When the sun goes down and the shadows begin to lengthen, a group of Ninja protect the Japanese City of Tokyo from evil spirits. Complete tasks in order to earn crystals to reinforce the magical barrier protecting the city. However, watch out, as Ninja are misunderstood and the people of Tokyo think you’re up to no good. Actually, generations of your kind have been protecting the city for thousands of years! But they don’t know this, so beware of guards patrolling the streets - they specialise in catching Ninja and are out to imprison you! And, if the guards weren’t enough, you must finish all of your tasks before sunrise, before it’s too late and the spirits grow stronger to devour the city. Press the \"H\" key for the controls."
+        drawText(screen, text, (0, 0, 0), Rect(10, 10, 790, 590), font)
+
+    if location == "Controls":
+        text = []
+        text.append("Movement: Arrow keys or WASD")
+        text.append("Activate Task: Spacebar")
+        text.append("Return to Home Screen: ESCAPE")
+        text.append("Pause Music: F8")
+        text.append("View Controls: H")
+        y = 10
+        for x in text:
+            drawText(screen, x, (0, 0, 0), Rect(10, y, 790, 590), font)
+            y = y + 40
+
     if location == "City Square":
         screen.blit(g.city_square, (0, 0))
+
+    if location == "Beach":
+        screen.blit(g.beach, (0, 0))
 
     if player and not location == "Character Menu":
         player.draw()
@@ -122,7 +182,5 @@ while 1:
             if player.direction == "right": player.image = pygame.transform.flip(player.image, True, False)
             player.move(-2, 0)
             player.direction = "left"
-        if pressed_keys[K_w] or pressed_keys[K_UP]:
-            player.move(0, -2)
-            player.isInAir = True
+
     pygame.display.update()

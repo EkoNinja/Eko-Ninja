@@ -3,8 +3,11 @@ from pygame.locals import *
 pygame.init()
 pygame.display.set_mode((0, 0))
 
+icon  = pygame.image.load("icon.png").convert_alpha()
+
 background_image = pygame.image.load("Backgrounds/Background.png").convert_alpha()
 city_square = pygame.image.load("Backgrounds/City Square.png").convert_alpha()
+beach = pygame.image.load("Backgrounds/Beach.png").convert_alpha()
 
 blue_skin = pygame.image.load("Skins/Blue.png").convert_alpha()
 brown_skin = pygame.image.load("Skins/Brown.png").convert_alpha()
