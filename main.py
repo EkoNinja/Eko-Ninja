@@ -1,4 +1,5 @@
-import os, sys, random
+import os, sys, subprocess, random
+subprocess.check_call([sys.executable, "-m", "pip", "install", "pygame"])
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 
 import pygame
@@ -15,15 +16,21 @@ screen = pygame.display.set_mode((800, 600))
 screen_rect = screen.get_rect()
 
 pygame.font.init()
-title_font = pygame.font.Font("HanaleiFill-Regular.ttf", 32)
-font = pygame.font.Font("BigShouldersText-Regular.ttf", 32)
+title_font = pygame.font.Font("HanaleiFill.ttf", 32)
+font = pygame.font.Font("BigShouldersText.ttf", 32)
 location = "Home Menu"
 
 mouse_clicked = False
+crystals = 0
 
 pygame.mixer.music.load("loop.mp3")
 pygame.mixer.music.play(-1)
 pygame.mixer.music.set_volume(0.01)
+
+def clicked(rect):
+    if mouse_clicked and rect.collidepoint(pygame.mouse.get_pos()):
+        return True
+    return False
 
 def drawText(surface, text, color, rect, font, aa=False, bkg=None):
     rect = Rect(rect)
@@ -65,7 +72,7 @@ class Player(pygame.sprite.Sprite):
             self.y = self.y + y
             self.rect = Rect(self.x, self.y, 85, 160)
         self.rect.clamp_ip(screen_rect)
-    def nextScene(self):
+    def checkScene(self):
         global location
         if self.x <= 0:
             if location == "City Square":
@@ -73,20 +80,69 @@ class Player(pygame.sprite.Sprite):
             if location == "Beach":
                 location = "City Square"
                 self.x = 795
+                return
+            if location == "Train Station":
+                location = "Beach"
+                self.x = 795
+                return
+            if location == "Park":
+                location = "Train Station"
+                self.x = 795
+                return
         if self.x >= 800:
             if location == "City Square":
                 location = "Beach"
                 self.x = 5
+                return
             if location == "Beach":
+                location = "Train Station"
+                self.x = 5
+                return
+            if location == "Train Station":
+                location = "Park"
+                self.x = 5
                 return
     def draw(self):
-        self.nextScene()
+        self.checkScene()
         screen.blit(self.image, self.rect)
 
-def clicked(rect):
-    if mouse_clicked and rect.collidepoint(pygame.mouse.get_pos()):
-        return True
-    return False
+class Task(pygame.sprite.Sprite):
+    def __init__(self, x, y, image):
+        self.x = x
+        self.y = y
+        self.visible = True
+        self.image = image
+        self.rect = Rect(x, y, self.image.get_width(), self.image.get_height())    
+
+class VanishingTask(Task):
+    def draw(self):
+        if self.visible == True:
+            screen.blit(self.image, self.rect)
+            if clicked(self.rect):
+                global crystals
+                self.visible = False
+                crystals = crystals + 1
+
+class ChangingTask(Task):
+    def __init__(self, x, y, image1, image2):
+        super().__init__(x, y, image1)
+        self.image1 = image1
+        self.image2 = image2
+    def draw(self):
+        screen.blit(self.image, self.rect)
+        if self.image == self.image1:
+            if clicked(self.rect):
+                global crystals
+                self.image = self.image2
+                crystals = crystals + 1
+
+task1 = VanishingTask(50, 450, g.plastic_waste1)
+task2 = VanishingTask(550, 350, g.plastic_waste2)
+task3 = VanishingTask(200, 100, g.plastic_waste3)
+task4 = VanishingTask(550, 75, g.plastic_waste4)
+
+task5 = ChangingTask(30, 500, g.lightbulb1, g.lightbulb2)
+task6 = ChangingTask(720, 500, g.lightbulb1, g.lightbulb2)
 
 while 1:
     pygame.time.Clock().tick(60)
@@ -110,9 +166,10 @@ while 1:
                 else:
                     pygame.mixer.music.unpause()
             if pygame.key.name(event.key) == "escape":
-                player = False
+                player = None
                 location = "Home Menu"
             if pygame.key.name(event.key) == "h":
+                player = None
                 location = "Controls"
                     
     screen.blit(g.background_image, (0, 0))
@@ -165,12 +222,33 @@ while 1:
         for x in text:
             drawText(screen, x, (0, 0, 0), Rect(10, y, 790, 590), font)
             y = y + 40
-
+        
     if location == "City Square":
         screen.blit(g.city_square, (0, 0))
 
     if location == "Beach":
         screen.blit(g.beach, (0, 0))
+
+        task1.draw()
+        task2.draw()
+        task3.draw()
+        task4.draw()
+
+    if location == "Train Station":
+        screen.blit(g.train_station, (0, 0))
+        task5.draw()
+        task6.draw()
+
+    if location == "Park":
+        screen.blit(g.park, (0, 0))
+
+    if not location == "Home Menu":
+        if not location == "Character Menu":
+            if not location == "Instructions":
+                if not location == "Controls":
+                    screen.blit(g.crystal_widget, (650, 10))
+                    text = font.render(str(crystals), False, (0, 0, 0))
+                    screen.blit(text, (720, 40))
 
     if player and not location == "Character Menu":
         player.draw()
